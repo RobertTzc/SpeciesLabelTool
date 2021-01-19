@@ -16,7 +16,9 @@ numpy
 glob
 
 ##Usage
-run the gui_ver2 by python
-After the GUI has brought up, click open_folder
-Choose project5_inference_height\image and click open
-after finished annoted one image it will stop, click next image
+For Windows:
+using cmd to open terminal
+cd to current folder
+run "pip install -r requirements.txt"
+open GUI.py using the same python you have installed packages
+click open file->open_dir find the target folder end up in image
