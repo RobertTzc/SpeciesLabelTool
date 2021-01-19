@@ -3,11 +3,8 @@ from tkinter import filedialog, dialog
 from tkinter import *  
 import os
 import os.path as path
-import cv2
 import glob
-import numpy
 from PIL import Image, ImageTk
-import numpy as np
 from PIL import Image, ImageDraw,ImageFont
 import json
 import collections
@@ -57,7 +54,7 @@ class ClassifyGUI():
 	def open_folder(self):
 		self.image_id = 0
 		self.file_path = filedialog.askdirectory(title=u'open_folder', initialdir=(os.path.expanduser('/home/robert/project5_inference_height')))
-		self.image_list = sorted(glob.glob(self.file_path+'/*.jpg')+glob.glob(self.file_path+'/*.JPG')+glob.glob(self.file_path+'/*.png'))
+		self.image_list = sorted(glob.glob(self.file_path+'/*.JPG'))
 		self.display_images()
 
 	def display_images(self):
@@ -110,10 +107,11 @@ class ClassifyGUI():
 		for data in detection_data:
 			box = [int(i) for i in data.split(' ')[2:]]
 			self.bbox.append(box)
-		current_box = self.bbox[self.bird_id]
-		length = max(abs(current_box[2]-current_box[0]),abs(current_box[3]-current_box[1]))
-		center = [(current_box[2]+current_box[0])/2,(current_box[3]+current_box[1])/2]
-		self.SmallImage = self.LargeImage.crop((center[0]-length/2,center[1]-length/2,center[0]+length/2,center[1]+length/2))
+		if(self.bbox!=[]):
+			current_box = self.bbox[self.bird_id]
+			length = max(abs(current_box[2]-current_box[0]),abs(current_box[3]-current_box[1]))
+			center = [(current_box[2]+current_box[0])/2,(current_box[3]+current_box[1])/2]
+			self.SmallImage = self.LargeImage.crop((center[0]-length/2,center[1]-length/2,center[0]+length/2,center[1]+length/2))
 		for box in self.bbox:
 			draw.rectangle((box[0],box[1],box[2],box[3]),outline='red',width = 5)
 		if(path.exists(self.result_file)):
@@ -155,7 +153,6 @@ if __name__ == '__main__':
 	root = Tk()
 	root.title('bird_classfiy')
 	root.geometry('400x200')
-	
-	config_file = './bird_label_config.json'
+	config_file = 'bird_label_config.json'
 	ClassifyGUI(config_file,root)
-	root.mainloop()
+	mainloop()
