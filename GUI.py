@@ -110,10 +110,11 @@ class ClassifyGUI():
 		for data in detection_data:
 			box = [int(i) for i in data.split(' ')[2:]]
 			self.bbox.append(box)
-		current_box = self.bbox[self.bird_id]
-		length = max(abs(current_box[2]-current_box[0]),abs(current_box[3]-current_box[1]))
-		center = [(current_box[2]+current_box[0])/2,(current_box[3]+current_box[1])/2]
-		self.SmallImage = self.LargeImage.crop((center[0]-length/2,center[1]-length/2,center[0]+length/2,center[1]+length/2))
+		if (self.bbox!=[]):
+			current_box = self.bbox[self.bird_id]
+			length = max(abs(current_box[2]-current_box[0]),abs(current_box[3]-current_box[1]))
+			center = [(current_box[2]+current_box[0])/2,(current_box[3]+current_box[1])/2]
+			self.SmallImage = self.LargeImage.crop((center[0]-length/2,center[1]-length/2,center[0]+length/2,center[1]+length/2))
 		for box in self.bbox:
 			draw.rectangle((box[0],box[1],box[2],box[3]),outline='red',width = 5)
 		if(path.exists(self.result_file)):
