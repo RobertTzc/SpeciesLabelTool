@@ -20,3 +20,6 @@ run the gui_ver2 by python
 After the GUI has brought up, click open_folder
 Choose project5_inference_height\image and click open
 after finished annoted one image it will stop, click next image
+#ver 2.0 update
+Adding subcategory system
+Adding customized category naming
