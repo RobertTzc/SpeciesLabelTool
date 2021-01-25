@@ -43,5 +43,11 @@ data = {"class_list":categories,
 	"GUIResolution": [1200, 800],
 	"RelativeLayoutImageView": [0.6666666666666666, 1], 
 	"RelativeLayoutBirdView": [0.16666666666666666, 0.25]}
-with open('./new_category.json', 'w') as f:
-	json.dump(data,f)
+
+if __name__=='__main__':
+	data = {"class_list":categories,
+	"GUIResolution": [1200, 800],
+	"RelativeLayoutImageView": [0.6666666666666666, 1], 
+	"RelativeLayoutBirdView": [0.16666666666666666, 0.25]}
+	with open('./new_category.json', 'w') as f:
+		json.dump(data,f)

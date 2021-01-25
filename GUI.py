@@ -11,11 +11,10 @@ from PIL import Image, ImageDraw,ImageFont
 import json
 import collections
 class ClassifyGUI():
-	def __init__(self,config_file,root): 
+	def __init__(self,config_data,root): 
 		self.root = root
 
-		with open(config_file,'r') as f:
-			self.config = json.load(f)
+		self.config = config_data
 		self.root.geometry(str(self.config['GUIResolution'][0])+'x'+str(self.config['GUIResolution'][1]))
 		self.large_image_size = [int(self.config['RelativeLayoutImageView'][0]*self.config['GUIResolution'][0]),int(self.config['RelativeLayoutImageView'][1]*self.config['GUIResolution'][1])]
 		self.small_image_size = [int(self.config['RelativeLayoutBirdView'][0]*self.config['GUIResolution'][0]),int(self.config['RelativeLayoutBirdView'][1]*self.config['GUIResolution'][1])]
@@ -101,7 +100,7 @@ class ClassifyGUI():
 	def open_folder(self):
 		self.image_id = 0
 		self.file_path = filedialog.askdirectory(title=u'open_folder', initialdir=(os.path.expanduser('/home/robert/project5_inference_height')))
-		self.image_list = sorted(glob.glob(self.file_path+'/*.jpg')+glob.glob(self.file_path+'/*.JPG')+glob.glob(self.file_path+'/*.png'))
+		self.image_list = sorted(glob.glob(self.file_path+'/*.JPG'))
 		self.display_images()
 
 	def display_images(self):
@@ -199,13 +198,13 @@ class ClassifyGUI():
 
 def about():
 	print ('open')
-
+from  create_new_json import *
 
 if __name__ == '__main__':
 	root = Tk()
 	root.title('bird_classfiy')
 	root.geometry('400x200')
 	
-	config_file = './new_category.json'
-	ClassifyGUI(config_file,root)
+	#config_file = './new_category.json'
+	ClassifyGUI(config_data=data,root = root)
 	root.mainloop()
