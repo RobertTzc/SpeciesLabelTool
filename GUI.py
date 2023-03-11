@@ -24,18 +24,25 @@ class ClassifyGUI():
 		self.image_list = []
 		self.image_id= 0
 		self.bird_id = 0
-		self.bbox = []
+		self.cur_bbox = []
+
 		self.config_UI()
 	def config_UI(self):
 		menubar = Menu(self.root) 
 		filemenu = Menu(menubar,tearoff=0)  
-		filemenu.add_command(label="open_dir",command = self.open_folder)  
+		filemenu.add_command(label="open_image_dir",command = self.open_image_folder)
+		filemenu.add_command(label="open_label_dir",command = self.open_label_folder)
+		filemenu.add_command(label="open_detection_dir",command = self.open_detection_folder)
+		filemenu.add_command(label="load_custom_settings",command = self.load_custom_settings)
 		filemenu.add_separator()  
 		filemenu.add_command(label="Exit", command=root.quit)  
-		menubar.add_cascade(label="File", menu=filemenu)  
+		menubar.add_cascade(label="Open", menu=filemenu)  
 		helpmenu = Menu(menubar, tearoff=0)  
 		helpmenu.add_command(label="About", command=about)  
-		menubar.add_cascade(label="Help", menu=helpmenu)    
+		menubar.add_cascade(label="Help", menu=helpmenu)
+
+
+
 		self.root.config(menu=menubar)
 		self.LargeImage = Image.new('RGB', (self.large_image_size[0],self.large_image_size[1]))
 		self.largePhoto = ImageTk.PhotoImage(self.LargeImage)
@@ -54,29 +61,50 @@ class ClassifyGUI():
 		Label(root, height=2, width=30,text = "Blue: pre-labeled",fg='blue').grid(row = idx+2, column = 3,columnspan=1)	
 		Label(root, height=2, width=30,text = "Yellow: selected",fg='yellow').grid(row = idx+1, column = 3,columnspan=1)	
 		Label(root, height=2, width=30,text = "Red: unlabeled",fg='red').grid(row = idx, column = 3,columnspan=1)	
-	def open_folder(self):
+	
+	
+	def open_image_folder(self):
 		self.image_id = 0
-		self.file_path = filedialog.askdirectory(title=u'open_folder', initialdir=(os.path.expanduser('/home/robert/project5_inference_height')))
-		self.image_list = sorted(glob.glob(self.file_path+'/*.jpg')+glob.glob(self.file_path+'/*.JPG')+glob.glob(self.file_path+'/*.png'))
-		self.display_images()
+		file_path = filedialog.askdirectory(title=u'open_folder', initialdir=(os.path.expanduser('/home/robert/project5_inference_height')))
+		self.image_list = sorted(glob.glob(file_path+'/*.jpg')+glob.glob(file_path+'/*.JPG')+glob.glob(file_path+'/*.png'))
+		self.display_image()
 
-	def display_images(self):
+	def open_label_folder(self):
+		file_path = filedialog.askdirectory(title=u'open_folder', initialdir=(os.path.expanduser('/home/robert/project5_inference_height')))
+		self.label_dir = file_path
+		self.display_image()
+
+	def open_detection_folder(self):
+		file_path = filedialog.askdirectory(title=u'open_folder', initialdir=(os.path.expanduser('/home/robert/project5_inference_height')))
+		self.label_dir = file_path
+		self.display_image()
+
+	def load_custom_settings(self):#custom settings that allow operations such as filter target class of birds
+		file_path = filedialog.askopenfilename(title=u'open_custom_settings', initialdir=(os.path.expanduser('./')))
+		with open(file_path,'r')as f:
+			self.custom_config = json.load(f)
+
+		print (self.custom_config)
+	
+	def display_image(self):
 		self.LargeImage = Image.open(self.image_list[self.image_id])
-		self.load_annotation()#draw bbox
+		self.load_current_annotation()#draw bbox
 		self.largePhoto = ImageTk.PhotoImage(self.LargeImage.resize((self.large_image_size[0],self.large_image_size[1]),resample=0))
 		self.smallPhoto = ImageTk.PhotoImage(self.SmallImage.resize((self.small_image_size[0],self.small_image_size[1]),resample=0))
 		Label(root, image=self.largePhoto,width=self.large_image_size[0],height =self.large_image_size[1]).grid(row=0, column=0,rowspan = 20,columnspan=2,sticky=W+E+N+S)
 		Label(root, image=self.smallPhoto,width=self.small_image_size[0],height =self.small_image_size[1]).grid(row=0, column=3,rowspan = 5,columnspan=1,sticky=W+E+N+S)
+	
 	def create_classification(self,label = None, correct = True):
 		print (label)
-		self.save_anno(label)
+		self.save_current_annotation(label)
 		self.switch_box('next')
 
 
-	def save_anno(self,label):
+	def save_current_annotation(self,label):# save the current annotations
+
 		if(not os.path.isdir(os.path.split(self.result_file)[0])):
 			os.mkdir(os.path.split(self.result_file)[0])
-		current_box = self.bbox[self.bird_id]
+		current_box = self.cur_bbox[self.bird_id]
 		bird_exist = False
 		if(path.exists(self.result_file)):
 			with open(self.result_file, "r") as f1,open("%s.bak" % self.result_file, "w") as f2:
@@ -97,8 +125,8 @@ class ClassifyGUI():
 
 
 
-	def load_annotation(self):
-		self.bbox = []
+	def load_current_annotation(self):
+		self.cur_bbox = []
 		bird_exist = False
 		draw = ImageDraw.Draw(self.LargeImage)
 		image_name = os.path.split(self.image_list[self.image_id])[1]
@@ -109,13 +137,13 @@ class ClassifyGUI():
 			detection_data = f.readlines()
 		for data in detection_data:
 			box = [int(i) for i in data.split(' ')[2:]]
-			self.bbox.append(box)
-		if (self.bbox!=[]):
-			current_box = self.bbox[self.bird_id]
+			self.cur_bbox.append(box)
+		if (self.cur_bbox!=[]):
+			current_box = self.cur_bbox[self.bird_id]
 			length = max(abs(current_box[2]-current_box[0]),abs(current_box[3]-current_box[1]))
 			center = [(current_box[2]+current_box[0])/2,(current_box[3]+current_box[1])/2]
 			self.SmallImage = self.LargeImage.crop((center[0]-length/2,center[1]-length/2,center[0]+length/2,center[1]+length/2))
-		for box in self.bbox:
+		for box in self.cur_bbox:
 			draw.rectangle((box[0],box[1],box[2],box[3]),outline='red',width = 5)
 		if(path.exists(self.result_file)):
 			
@@ -129,24 +157,26 @@ class ClassifyGUI():
 				category = data.split(' ')[1]
 				draw.text(xy=(box[0]-5,box[1]-5), text=category, fill=(0, 255, 255), )
 				draw.rectangle((box[0],box[1],box[2],box[3]),outline='blue',width = 5)
-		if (self.bbox!=[]):
-			box = self.bbox[self.bird_id]
+		if (self.cur_bbox!=[]):
+			box = self.cur_bbox[self.bird_id]
 			draw.rectangle((box[0],box[1],box[2],box[3]),outline='yellow',width = 5)
 		if (bird_exist == False):
 			Label(root, height=2, width=30,text = "Label: unlabeled",fg='black').grid(row = 6, column = 3,columnspan=1)
+	
 	def switch_image(self,direction = 'next'):
 		if (direction=='next'):
 			self.image_id= min(len(self.image_list)-1,self.image_id+1)
 		else:
 			self.image_id=max(0,self.image_id-1)
 		self.bird_id = 0
-		self.display_images()
+		self.display_image()
+	
 	def switch_box(self,direction = 'next'):
 		if (direction=='next'):
-			self.bird_id= min(len(self.bbox)-1,self.bird_id+1)
+			self.bird_id= min(len(self.cur_bbox)-1,self.bird_id+1)
 		else:
 			self.bird_id=max(0,self.bird_id-1)
-		self.display_images()
+		self.display_image()
 
 def about():
 	print ('open')
