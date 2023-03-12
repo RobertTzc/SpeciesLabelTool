@@ -1,7 +1,6 @@
 {
-    "filtered_class": [
-        {
-            "Mallard": 0.9
-        }
-    ]
+    "filtered_class": {
+        "Mallard": 0.9,
+        "Mallard Male":0
+    }
 }

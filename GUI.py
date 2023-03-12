@@ -25,9 +25,10 @@ class ClassifyGUI():
 		self.image_id= 0
 		self.bird_id = 0
 		self.cur_bbox = []
+		self.custom_config = dict()
 		self.use_prediction = False # This flag is used to reflect whether to use detection results to classify.
-		self.filter_class = False # when enable, skip the boxes that has class id
-
+		self.filter_class_tk = BooleanVar() # when enable, skip the boxes that has class id
+		self.filter_class = False
 		self.config_UI()
 	
 	def config_UI(self):# GUI configuration layout
@@ -64,7 +65,7 @@ class ClassifyGUI():
 		Label(self.root, height=2, width=30,text = "Blue: pre-labeled",fg='blue').grid(row = idx+2, column = 3,columnspan=1)	
 		Label(self.root, height=2, width=30,text = "Yellow: selected",fg='yellow').grid(row = idx+1, column = 3,columnspan=1)	
 		Label(self.root, height=2, width=30,text = "Red: unlabeled",fg='red').grid(row = idx, column = 3,columnspan=1)
-		Checkbutton(self.root, text='filter class', variable=self.filter_class, onvalue=True, offvalue=False).grid(row = idx-1, column = 3,columnspan=1)	
+		Checkbutton(self.root, text='filter class', variable=self.filter_class_tk, onvalue=True, offvalue=False,command = self.load_current_annotation).grid(row = idx-1, column = 3,columnspan=1)	
 	
 	def open_image_folder(self):
 		self.image_id = 0
@@ -101,7 +102,7 @@ class ClassifyGUI():
 		Label(root, image=self.largePhoto,width=self.large_image_size[0],height =self.large_image_size[1]).grid(row=0, column=0,rowspan = 20,columnspan=2,sticky=W+E+N+S)
 		Label(root, image=self.smallPhoto,width=self.small_image_size[0],height =self.small_image_size[1]).grid(row=0, column=3,rowspan = 5,columnspan=1,sticky=W+E+N+S)
 		self.draw_annotation()
-		print (self.cur_bbox)
+		#print (self.cur_bbox)
 
 	def draw_annotation(self):
 		draw = ImageDraw.Draw(self.LargeImage)
@@ -121,6 +122,24 @@ class ClassifyGUI():
 			else:
 				draw.rectangle((box[1],box[2],box[3],box[4]),outline='blue',width = 5)
 				
+
+	def custom_config_application(self): # Apply custom config on current annotations
+		print (self.filter_class)
+		if (self.filter_class == False):
+			return
+		
+		filter_item = self.custom_config['filtered_class']
+		for key,val in filter_item.items():
+			keep = []
+			print (key)
+			for idx,box in enumerate(self.cur_bbox):
+				if (box[0]==key):
+					if (box[-1]>=val):
+						continue
+				keep.append(idx)
+			self.cur_bbox = [self.cur_bbox[i] for i in keep]
+		return
+
 		
 
 	def save_current_annotation(self,label = None, correct = True):# save the current annotations, and also move to next
@@ -174,6 +193,10 @@ class ClassifyGUI():
 			for data in result_data:
 				box = [data.split(',')[0]]+[int(i) for i in data.split(',')[2:]]
 				self.cur_bbox.append(box)
+		print ('before filter',len(self.cur_bbox))
+		self.filter_class = self.filter_class_tk.get()
+		self.custom_config_application()
+		print ('after filter',len(self.cur_bbox))
 
 	
 	def switch_image(self,direction = 'next'): # switch to the next large image
