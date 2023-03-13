@@ -21,5 +21,6 @@
     "RelativeLayoutBirdView": [
         0.16666666666666666,
         0.25
-    ]
+    ],
+    "out_dir":"./"
 }

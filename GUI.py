@@ -22,6 +22,7 @@ class ClassifyGUI():
 		self.small_image_size = [int(self.config['RelativeLayoutBirdView'][0]*self.config['GUIResolution'][0]),int(self.config['RelativeLayoutBirdView'][1]*self.config['GUIResolution'][1])]
 		self.class_list = self.config['classList']
 		self.image_list = []
+		self.out_dir = self.config['out_dir']
 		self.image_id= 0
 		self.bird_id = 0
 		self.cur_bbox = []
@@ -55,9 +56,9 @@ class ClassifyGUI():
 		self.smallPhoto = ImageTk.PhotoImage(self.SmallImage)
 		Label(self.root, image=self.smallPhoto,width=self.small_image_size[0],height =self.small_image_size[1]).grid(row=0, column=3,rowspan = 5,columnspan=1,sticky=W+E+N+S)
 		for idx,class_name in enumerate(self.class_list):
-			Button(self.root,width=25,height=2,text =class_name,command = lambda class_name = class_name: self.create_classification(correct = True,label = class_name)).grid(row = idx, column = 4,columnspan=1)
-		Button(self.root,width=25,height=2,text = "Not Bird",command = lambda: self.create_classification(correct = False,label = 'WrongAnno'),fg='red').grid(row = idx+1, column = 4,columnspan=1)
-		Button(self.root,width=25,height=2,text = "Unknown",command = lambda: self.create_classification(correct = True,label = 'Not_Sure'),fg='red').grid(row = idx+2, column = 4,columnspan=1)
+			Button(self.root,width=25,height=2,text =class_name,command = lambda class_name = class_name: self.save_current_annotation(correct = True,label = class_name)).grid(row = idx, column = 4,columnspan=1)
+		Button(self.root,width=25,height=2,text = "Not Bird",command = lambda: self.save_current_annotation(correct = False,label = 'WrongAnno'),fg='red').grid(row = idx+1, column = 4,columnspan=1)
+		Button(self.root,width=25,height=2,text = "Unknown",command = lambda: self.save_current_annotation(correct = True,label = 'Not_Sure'),fg='red').grid(row = idx+2, column = 4,columnspan=1)
 		Button(self.root,width=25,height=4,text = "Next_Image",command = lambda: self.switch_image('next'),fg='blue').grid(row = idx+3, column = 4,columnspan=1)
 		Button(self.root,width=25,height=4,text = "Prev_Image",command = lambda: self.switch_image('prev'),fg='blue').grid(row = idx+4, column = 4,columnspan=1)
 		Button(self.root,width=25,height=4,text = "Next_Bird",command = lambda: self.switch_box('next'),fg='green').grid(row = idx+3, column = 3,columnspan=1)
@@ -71,6 +72,7 @@ class ClassifyGUI():
 		self.image_id = 0
 		file_path = filedialog.askdirectory(title=u'open_folder', initialdir=(os.path.expanduser('/home/robert/Models/model_inference_gui/example_images/Bird_drone/15m')))
 		self.image_list = sorted(glob.glob(file_path+'/*.jpg')+glob.glob(file_path+'/*.JPG')+glob.glob(file_path+'/*.png'))
+		self.out_dir = os.path.join(self.out_dir,os.path.split(file_path)[1])
 		self.display_image()
 
 	def open_label_folder(self):
@@ -142,27 +144,13 @@ class ClassifyGUI():
 
 		
 
-	def save_current_annotation(self,label = None, correct = True):# save the current annotations, and also move to next
+	def save_current_annotation(self,label = None, correct = True):# save the current annotations
+		self.cur_bbox[self.bird_id][0] = label
 		if(not os.path.isdir(os.path.split(self.result_file)[0])):
-			os.mkdir(os.path.split(self.result_file)[0])
-		current_box = self.cur_bbox[self.bird_id]
-		bird_w_label = False
-		if(path.exists(self.result_file)):
-			with open(self.result_file, "r") as f1,open("%s.bak" % self.result_file, "w") as f2:
-				for line in f1.readlines():
-					box = [int(i) for i in line.split(' ')[2:]]
-					if (collections.Counter(current_box) == collections.Counter(box)):
-						bird_w_label = True
-						f2.writelines('{},{},{},{},{}\n'.format(label,current_box[0],current_box[1],current_box[2],current_box[3]))
-					else:
-						f2.writelines(line)
-				if (bird_w_label == False):
-					f2.writelines('{},{},{},{},{}\n'.format(label,current_box[0],current_box[1],current_box[2],current_box[3]))
-			os.remove(self.result_file)
-			os.rename("%s.bak" % self.result_file, self.result_file)
-		else:
-			with open(self.result_file, "w") as f:
-				f.writelines('{},{},{},{},{}\n'.format(label,current_box[0],current_box[1],current_box[2],current_box[3]))
+			os.makedirs(os.path.split(self.result_file)[0],exist_ok=True)
+		with open(self.result_file, "w") as f:
+			for box in self.cur_bbox:
+				f.writelines('{},{},{},{},{},{}\n'.format(box[0],box[5],box[1],box[2],box[3],box[4]))
 		self.switch_box('next')
 
 	def load_current_annotation(self):#Load the gt/detection file for current image
@@ -170,22 +158,10 @@ class ClassifyGUI():
 		bird_w_label = False
 		image_name = os.path.split(self.image_list[self.image_id])[1]
 		self.detection_file = os.path.join(self.label_dir,image_name.split('.')[0]+'.txt')
-		self.result_file = os.path.join(os.path.split(self.image_list[self.image_id])[0],'result_labels',image_name.replace('.JPG','.txt'))
-	
-		with open(self.detection_file,'r') as f:
-			detection_data = f.readlines()
-		for data in detection_data:
-			if(self.use_prediction):
-				box = [data.split(',')[0]]+[int(i) for i in data.split(',')[2:]]+[float(data.split(',')[1])]
-			else:
-				box = [data.split(',')[0]]+[int(i) for i in data.split(',')[1:]]+[1.0]
-			self.cur_bbox.append(box)
-		if (self.cur_bbox!=[]):
-			current_box = self.cur_bbox[self.bird_id]
-			length = max(abs(current_box[3]-current_box[1]),abs(current_box[4]-current_box[2]))
-			center = [(current_box[3]+current_box[1])/2,(current_box[4]+current_box[2])/2]
-			self.SmallImage = self.LargeImage.crop((center[0]-length/2,center[1]-length/2,center[0]+length/2,center[1]+length/2))
-		#if there pre-existing some result file, pick from what is left
+		self.result_file = os.path.join(self.out_dir,'result_labels',image_name.split('.')[0]+'.txt')
+
+
+		print ('checking file exists:',path.exists(self.result_file))
 		if(path.exists(self.result_file)):
 			current_box = []
 			with open(self.result_file,'r') as f:
@@ -193,6 +169,22 @@ class ClassifyGUI():
 			for data in result_data:
 				box = [data.split(',')[0]]+[int(i) for i in data.split(',')[2:]]
 				self.cur_bbox.append(box)
+		else:
+			with open(self.detection_file,'r') as f:
+				detection_data = f.readlines()
+			for data in detection_data:
+				if(self.use_prediction):
+					box = [data.split(',')[0]]+[int(i) for i in data.split(',')[2:]]+[float(data.split(',')[1])]
+				else:
+					box = [data.split(',')[0]]+[int(i) for i in data.split(',')[1:]]+[1.0]
+				self.cur_bbox.append(box)
+		if (self.cur_bbox!=[]):
+			current_box = self.cur_bbox[self.bird_id]
+			length = max(abs(current_box[3]-current_box[1]),abs(current_box[4]-current_box[2]))
+			center = [(current_box[3]+current_box[1])/2,(current_box[4]+current_box[2])/2]
+			self.SmallImage = self.LargeImage.crop((center[0]-length/2,center[1]-length/2,center[0]+length/2,center[1]+length/2))
+		#if there pre-existing some result file, pick from what is left
+		
 		print ('before filter',len(self.cur_bbox))
 		self.filter_class = self.filter_class_tk.get()
 		self.custom_config_application()
