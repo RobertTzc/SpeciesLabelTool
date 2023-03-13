@@ -15,6 +15,7 @@ pip install Pillow==6.2.2 #6.1 also works
 ## Usage
 Below shows the UI interface.
 
+![Screenshot from 2023-03-12 23-16-00](https://user-images.githubusercontent.com/71574752/224606950-3f6a0e4a-187a-4996-9f45-384410fb1f9f.png)
 
 ```
 Section 1: shows the options to load image/annotation/config file
