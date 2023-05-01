@@ -105,25 +105,48 @@ Section 4: Selection to filter classes (species) to just those specified by the 
 Section 5: Current species classification (Updates if new class is selected from the menu in section 2)
 Section 6: Utility functions to move forward/backward across birds/images
 ```
-### Load images (required)
+## Load images (required)
 1. In the top left under "Open" in section 1, select 'open_image_dir'. This will bring up a window to navigate to and select the folder directory that contains the images to correct labels. Once the target image dir is selected, the GUI will display the first image (alphabetically) in the folder directory.
 
-### Load labels or detections (Pick one)
+## Load labels or detections (Pick one)
 There are two ways of loading the detection and classification labels associated with the labeled images.
 
-1. open_label_dir -> loads labels with only location information - use for automated labels that do not provide species classification information or manual labels that contain species classification information made in LabelMe
-2. open_detection_dir -> loads labels from model detection and species classification results provided by our models
+1. open_label_dir -> loads labels with only location information - use for automated labels that do not provide species classification information
+2. open_detection_dir -> loads labels from models with species classification results - use for automated labels that provide species classification information
 
-**Attention**: If result file exists a corresponding result file, both process describe above will not be loaded (however user still have to choose one of them). Instead, the file under result file will be automatically used to resume previous result. To avoid that, simply delete the result file or change the output directory in the config file.
-
-### Customization Options
+## Customization Options (Optional)
 
 1. Add/Delete species categories buttons for labeling
+The user is able to define their own list of classes to label the birds as using the bird_label_config.json file. A sample is provided under the file "bird_label_config.json" and is also outlined below. In the example file, the program will give the user the options to label birds as Mallard, Pintail, and Shoveler. Notice that the final category does not contain a comma after the ".
+
+```
+    "classList": [
+        "Mallard",
+        "Pintail",
+        "Shovelor"
+    ],
+```
+
+To edit this configuration file in Windows, open the bird_label_config.json file in notepad and add or remove categories. For example, in the below example we add sex options to each of the categories. You may add as many or as few categories for labeling as you would like.
+
+```
+{
+    "classList": [
+        "Mallard_Male",
+        "Mallard_Female",
+        "Pintail_Male",
+        "Pintail_Female",
+        "Shovelor_Male",
+        "Shovelor_Female"
+    ],
+}
+```
 
 2. Change the output directory to save results
+Instructions Coming Soon!
 
 3. Filter automated labels to only show specific classes
-Filter class enables the program to skip some predefined classes during the label process, a sample is provided under file custom_settings.json. See the example below: it means the program will skip the instance of 'Mallard' if the confidence score over 0.9 and 'Mallard Male' if the score is over 0.5. User can config these values in this json file and loaded them with the option of 'load_custom_settings' in Section 1.
+Filter class enables the program to skip some predefined classes during the labeling process to try and speed up the labeling process. A sample is provided under the file "custom_settings.json" and is also outlined below. In the example file, the program will skip the instance of 'Mallard' if the confidence score over 0.9 and 'Mallard Male' if the score is over 0.5. 
 
 ```
 {
@@ -134,37 +157,31 @@ Filter class enables the program to skip some predefined classes during the labe
 }
 ```
 
-## Labeling Process
-Step1:
+To edit this configuration file in Windows, open the custom_settings.json file in notepad and add or remove categories and confidence scores. For example, in the below example we add the program to skip Gadwall if the score is over 0.75 and remove the skipping of Mallard Male over 0.5. You may add as many or as few categories to skip as you would like.
 
-Open the GUI tool by type command in the command window:
 ```
-python GUI.py
+{
+    "filtered_class": {
+        "Mallard": 0.9,
+        "Gadwall":0.75
+    }
+}
 ```
-Then finish the three sections described before:
 
-    Load images, 
-    Load labels/detections, 
-    (Load customized configuration)
+## Loading Customization Options
+The list of species classification buttons and output directly will be automatically loaded. 
 
-The program will show the images and bounding boxes in the large image view with the current labeling box in the smaller image view. Note that all the boxes are showing in blur color except the current focused one is in yellow.
+To load the filtered species to not see, in the top left under "Open" in section 1, select 'load_custom_settings'. This will bring up a window to navigate to and select the file that contains the custom settings, the custom_settings.json file. Select the custom_settings.json file and click open. Next, on the main screen under section 4, select the empty box next to "filter class". This will activate the filter categories and remove them so they will be skipped over by the tool.
 
-***extra step***
+## Labeling Birds
+The main window of the program will show the current image and all bird bounding boxes (blue boxes) in the large image view. The current bird to be labeled will be shown in the smaller image view in the upper right, and the bounding box of this bird will change to yellow in the large image view to highlight the current bird.
 
-If user choose to skip some specific class defined in the custom_settings.json, please check the box in section 4 to enable the filter process. Note if the custom_settings is not loaded ahead, the filter class wont work.
+To assign the currently selected bird (the one shown in the top right with a yellow bounding box), simply select the species classification name from the menu on the right side of the screen in Section 2. Once one is selected, the program will jump to the next instance available. If you want to skip the bird and not reclassify it, click the green "Next_Bird" button. If you accidentally mis-label or skip a bird, use the Prev_Bird button to go back to the previous bird. If after selecting a species class or selecting "Next_Bird" and the program doesn't bring up a new bird, it means you have gone through all the birds in that image. Select the blue "Next_Image" button to go to the next image. Anytime you select a species classification, the label file gets automatically updated and the new version is saved. 
 
+## Results and Output
+The result will be generated as follows, under the directory defined in configs json file "out_dir". The base directory is within the SpeciesLabelTool-main folder under a new folder with the same name as the folder containing the images.
 
-Step2:
-
-Assign the current instance with a class name, the class name options are available on the right side in section 2, after click one of the class name, the program will jump to the next instance available. If the next instance doesn't change, it means arriving the end of all the available instance of this image. Every single operation in this section will trigger autosave for the current image result.
-
-
-Step3:
-
-After finish labeling all the instance of current image, click next_image/prev_image located in section 6, user can also skip/roll back instance by clicking Next_Bird/Prev_Bird. Every single operation in this section will trigger autosave for the current image result. These steps wont trigger auto save, and will not update results.
-
-## Results format
-The result will be generated as follows, under the directory defined in configs json file "out_dir". The file structure will be like:
+The file structure will be like:
 ```
 Under 'out_dir'
 Input_image_folder name
@@ -177,5 +194,6 @@ Input_image_folder name
 For each result txt file, each instance is consists the following parts:
 ```
 'class name','confidence score',box[0],box[1],box[2],box[3]'
+Example:
 Gadwall,0.9883061051368713,3325,1037,3403,1179
 ```
