@@ -78,12 +78,14 @@ class ClassifyGUI():
 		Checkbutton(self.root, text='filter class', variable=self.filter_class_tk, onvalue=True, offvalue=False,command = self.load_current_annotation).grid(row = 8, column = 3,columnspan=1)	
 	
 	def open_image_folder(self):
+		self.change_log = []
 		self.image_id = 0
 		file_path = filedialog.askdirectory(title=u'open_folder', initialdir=(os.path.expanduser('./15m')))
 		self.image_list = sorted(glob.glob(file_path+'/*.jpg')+glob.glob(file_path+'/*.JPG')+glob.glob(file_path+'/*.png'))
 		self.display_image()
 
 	def open_label_folder(self):
+		self.change_log = []
 		file_path = filedialog.askdirectory(title=u'open_folder', initialdir=(os.path.expanduser('./15m/label')))
 		self.label_dir = file_path
 		if ('out_dir' not in self.config):
@@ -93,6 +95,7 @@ class ClassifyGUI():
 		self.display_image()
 
 	def open_detection_folder(self):
+		self.change_log = []
 		file_path = filedialog.askdirectory(title=u'open_folder', initialdir=(os.path.expanduser('./15m/detection')))
 		self.label_dir = file_path
 		if ('out_dir' not in self.config):
@@ -171,12 +174,10 @@ class ClassifyGUI():
 				print (box)
 				f.writelines('{},{},{},{},{},{}\n'.format(box[0],box[5],box[1],box[2],box[3],box[4]))
 		df = pd.DataFrame(self.change_log)
-		if (self.use_prediction):
-			df.to_csv(os.path.join(self.out_dir,'change_log.csv'),header=['image_name','annotation_id','prev_class','new_class',
-								'x1','y1','x2','y2','confidence'],index=False)
-		else:
-			df.to_csv(os.path.join(self.out_dir,'change_log.csv'),header=['image_name','annotation_id','prev_class','new_class',
-								'x1','y1','x2','y2','confidence'],index=False)
+
+		df.to_csv(os.path.join(self.out_dir,'change_log.csv'),header=['image_name','annotation_id','prev_class','new_class',
+						'x1','y1','x2','y2','confidence'],index=False)
+
 		self.switch_box('next')
 
 	def load_current_annotation(self):#Load the gt/detection file for current image
