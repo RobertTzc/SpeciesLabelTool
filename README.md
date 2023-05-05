@@ -57,8 +57,9 @@ After creating and activating a virtual environment, we recommend installing pac
 ```
 pip install tk
 pip install opencv-contrib-python
-pip install glob
+pip install glob2
 pip install Pillow==6.2.2
+pip install pandas
 ````
 *Note*: For installation of Pillow==6.2.2, 6.1 also works. Try using Pillow==6.1 if errors arise attempting to install Pillow==6.2.2
 
