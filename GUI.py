@@ -66,25 +66,21 @@ class ClassifyGUI():
 			Button(self.root,width=25,height=2,text =class_name,command = lambda class_name = class_name: self.save_current_annotation(correct = True,label = class_name)).grid(row = idx, column = 4,columnspan=1)
 		
 		
-		Button(self.root,width=25,height=2,text = "Not Bird",command = lambda: self.save_current_annotation(correct = False,label = 'WrongAnno'),fg='red').grid(row = 10, column = 4,columnspan=1)
-		Button(self.root,width=25,height=2,text = "Unknown",command = lambda: self.save_current_annotation(correct = True,label = 'Not_Sure'),fg='red').grid(row = 11, column = 4,columnspan=1)
-		Button(self.root,width=25,height=4,text = "Next_Image",command = lambda: self.switch_image('next'),fg='blue').grid(row = 12, column = 4,columnspan=1)
-		Button(self.root,width=25,height=4,text = "Prev_Image",command = lambda: self.switch_image('prev'),fg='blue').grid(row = 13, column = 4,columnspan=1)
-		Button(self.root,width=25,height=4,text = "Next_Bird",command = lambda: self.switch_box('next'),fg='green').grid(row = 14, column = 3,columnspan=1)
-		Button(self.root,width=25,height=4,text = "Prev_Bird",command = lambda: self.switch_box('prev'),fg='green').grid(row = 15, column = 3,columnspan=1)
-		Label(self.root, height=2, width=30,text = "Blue: pre-labeled",fg='blue').grid(row = 11, column = 3,columnspan=1)	
-		Label(self.root, height=2, width=30,text = "Yellow: selected",fg='yellow').grid(row = 10, column = 3,columnspan=1)	
-		Label(self.root, height=2, width=30,text = "Red: unlabeled",fg='red').grid(row = 9, column = 3,columnspan=1)
+		Button(self.root,width=25,height=2,text = "Not Bird",command = lambda: self.save_current_annotation(correct = False,label = 'WrongAnno'),fg='red').grid(row = idx+1, column = 4,columnspan=1)
+		Button(self.root,width=25,height=2,text = "Unknown",command = lambda: self.save_current_annotation(correct = True,label = 'Not_Sure'),fg='red').grid(row = idx+2, column = 4,columnspan=1)
+		Button(self.root,width=25,height=4,text = "Next_Image",command = lambda: self.switch_image('next'),fg='blue').grid(row = idx+3, column = 4,columnspan=1)
+		Button(self.root,width=25,height=4,text = "Prev_Image",command = lambda: self.switch_image('prev'),fg='blue').grid(row = idx+4, column = 4,columnspan=1)
+		Button(self.root,width=25,height=4,text = "Next_Bird",command = lambda: self.switch_box('next'),fg='green').grid(row = idx+3, column = 3,columnspan=1)
+		Button(self.root,width=25,height=4,text = "Prev_Bird",command = lambda: self.switch_box('prev'),fg='green').grid(row = idx+4, column = 3,columnspan=1)
+		Label(self.root, height=2, width=30,text = "Blue: pre-labeled",fg='blue').grid(row = idx+2, column = 3,columnspan=1)	
+		Label(self.root, height=2, width=30,text = "Yellow: selected",fg='yellow').grid(row = idx+1, column = 3,columnspan=1)	
+		Label(self.root, height=2, width=30,text = "Red: unlabeled",fg='red').grid(row = idx, column = 3,columnspan=1)
 		Checkbutton(self.root, text='filter class', variable=self.filter_class_tk, onvalue=True, offvalue=False,command = self.load_current_annotation).grid(row = 8, column = 3,columnspan=1)	
 	
 	def open_image_folder(self):
 		self.image_id = 0
 		file_path = filedialog.askdirectory(title=u'open_folder', initialdir=(os.path.expanduser('./15m')))
 		self.image_list = sorted(glob.glob(file_path+'/*.jpg')+glob.glob(file_path+'/*.JPG')+glob.glob(file_path+'/*.png'))
-		if ('out_dir' not in self.config):
-			self.out_dir = self.label_dir
-		else:
-			self.out_dir = os.path.join(self.out_dir,os.path.split(file_path)[1])
 		self.display_image()
 
 	def open_label_folder(self):
@@ -132,6 +128,7 @@ class ClassifyGUI():
 			length = max(abs(current_box[3]-current_box[1]),abs(current_box[4]-current_box[2]))
 			center = [(current_box[3]+current_box[1])/2,(current_box[4]+current_box[2])/2]
 			self.SmallImage = self.LargeImage.crop((center[0]-length/2,center[1]-length/2,center[0]+length/2,center[1]+length/2))
+			print ('current box',current_box)
 			draw.rectangle((current_box[1],current_box[2],current_box[3],current_box[4]),outline='yellow',width = 5)
 			Label(root, height=2, width=30,text = "Label: {}".format(current_box[0]),fg='blue').grid(row = 6, column = 3,columnspan=1)
 		for idx,box in enumerate(self.cur_bbox):
@@ -171,6 +168,7 @@ class ClassifyGUI():
 			os.makedirs(os.path.split(self.result_file)[0],exist_ok=True)
 		with open(self.result_file, "w") as f:
 			for box in self.cur_bbox:
+				print (box)
 				f.writelines('{},{},{},{},{},{}\n'.format(box[0],box[5],box[1],box[2],box[3],box[4]))
 		df = pd.DataFrame(self.change_log)
 		if (self.use_prediction):
@@ -178,7 +176,7 @@ class ClassifyGUI():
 								'x1','y1','x2','y2','confidence'],index=False)
 		else:
 			df.to_csv(os.path.join(self.out_dir,'change_log.csv'),header=['image_name','annotation_id','prev_class','new_class',
-								'x1','y1','x2','y2'],index=False)
+								'x1','y1','x2','y2','confidence'],index=False)
 		self.switch_box('next')
 
 	def load_current_annotation(self):#Load the gt/detection file for current image
@@ -195,7 +193,13 @@ class ClassifyGUI():
 			with open(self.result_file,'r') as f:
 				result_data = f.readlines()
 			for data in result_data:
-				box = [data.split(',')[0]]+[int(i) for i in data.split(',')[2:]]
+				if (len(data.split(','))==5):
+					box = [data.split(',')[0]]+[int(i) for i in data.split(',')[1:]]
+				else:
+					box = [data.split(',')[0]]+[int(i) for i in data.split(',')[2:]]
+				if (len(box)<=5):
+					box+=[1.0]
+				print (box)
 				self.cur_bbox.append(box)
 		else:
 			with open(self.detection_file,'r') as f:
