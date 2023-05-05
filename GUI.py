@@ -11,6 +11,7 @@ import numpy as np
 from PIL import Image, ImageDraw,ImageFont
 import json
 import collections
+import pandas as pd
 class ClassifyGUI():
 	def __init__(self,config_file,root): 
 		self.root = root
@@ -22,7 +23,10 @@ class ClassifyGUI():
 		self.small_image_size = [int(self.config['RelativeLayoutBirdView'][0]*self.config['GUIResolution'][0]),int(self.config['RelativeLayoutBirdView'][1]*self.config['GUIResolution'][1])]
 		self.class_list = self.config['classList']
 		self.image_list = []
-		self.out_dir = self.config['out_dir']
+		if ('out_dir' in self.config):
+			self.out_dir = self.config['out_dir']
+		else:
+			self.out_dir = ""
 		self.image_id= 0
 		self.bird_id = 0
 		self.cur_bbox = []
@@ -30,7 +34,10 @@ class ClassifyGUI():
 		self.use_prediction = False # This flag is used to reflect whether to use detection results to classify.
 		self.filter_class_tk = BooleanVar() # when enable, skip the boxes that has class id
 		self.filter_class = False
+		self.info = ''
 		self.config_UI()
+		self.change_log = []
+		
 	
 	def config_UI(self):# GUI configuration layout
 		menubar = Menu(self.root) 
@@ -57,34 +64,43 @@ class ClassifyGUI():
 		Label(self.root, image=self.smallPhoto,width=self.small_image_size[0],height =self.small_image_size[1]).grid(row=0, column=3,rowspan = 5,columnspan=1,sticky=W+E+N+S)
 		for idx,class_name in enumerate(self.class_list):
 			Button(self.root,width=25,height=2,text =class_name,command = lambda class_name = class_name: self.save_current_annotation(correct = True,label = class_name)).grid(row = idx, column = 4,columnspan=1)
-		Button(self.root,width=25,height=2,text = "Not Bird",command = lambda: self.save_current_annotation(correct = False,label = 'WrongAnno'),fg='red').grid(row = idx+1, column = 4,columnspan=1)
-		Button(self.root,width=25,height=2,text = "Unknown",command = lambda: self.save_current_annotation(correct = True,label = 'Not_Sure'),fg='red').grid(row = idx+2, column = 4,columnspan=1)
-		Button(self.root,width=25,height=4,text = "Next_Image",command = lambda: self.switch_image('next'),fg='blue').grid(row = idx+3, column = 4,columnspan=1)
-		Button(self.root,width=25,height=4,text = "Prev_Image",command = lambda: self.switch_image('prev'),fg='blue').grid(row = idx+4, column = 4,columnspan=1)
-		Button(self.root,width=25,height=4,text = "Next_Bird",command = lambda: self.switch_box('next'),fg='green').grid(row = idx+3, column = 3,columnspan=1)
-		Button(self.root,width=25,height=4,text = "Prev_Bird",command = lambda: self.switch_box('prev'),fg='green').grid(row = idx+4, column = 3,columnspan=1)
-		Label(self.root, height=2, width=30,text = "Blue: pre-labeled",fg='blue').grid(row = idx+2, column = 3,columnspan=1)	
-		Label(self.root, height=2, width=30,text = "Yellow: selected",fg='yellow').grid(row = idx+1, column = 3,columnspan=1)	
-		Label(self.root, height=2, width=30,text = "Red: unlabeled",fg='red').grid(row = idx, column = 3,columnspan=1)
-		Checkbutton(self.root, text='filter class', variable=self.filter_class_tk, onvalue=True, offvalue=False,command = self.load_current_annotation).grid(row = idx-1, column = 3,columnspan=1)	
+		
+		
+		Button(self.root,width=25,height=2,text = "Not Bird",command = lambda: self.save_current_annotation(correct = False,label = 'WrongAnno'),fg='red').grid(row = 10, column = 4,columnspan=1)
+		Button(self.root,width=25,height=2,text = "Unknown",command = lambda: self.save_current_annotation(correct = True,label = 'Not_Sure'),fg='red').grid(row = 11, column = 4,columnspan=1)
+		Button(self.root,width=25,height=4,text = "Next_Image",command = lambda: self.switch_image('next'),fg='blue').grid(row = 12, column = 4,columnspan=1)
+		Button(self.root,width=25,height=4,text = "Prev_Image",command = lambda: self.switch_image('prev'),fg='blue').grid(row = 13, column = 4,columnspan=1)
+		Button(self.root,width=25,height=4,text = "Next_Bird",command = lambda: self.switch_box('next'),fg='green').grid(row = 14, column = 3,columnspan=1)
+		Button(self.root,width=25,height=4,text = "Prev_Bird",command = lambda: self.switch_box('prev'),fg='green').grid(row = 15, column = 3,columnspan=1)
+		Label(self.root, height=2, width=30,text = "Blue: pre-labeled",fg='blue').grid(row = 11, column = 3,columnspan=1)	
+		Label(self.root, height=2, width=30,text = "Yellow: selected",fg='yellow').grid(row = 10, column = 3,columnspan=1)	
+		Label(self.root, height=2, width=30,text = "Red: unlabeled",fg='red').grid(row = 9, column = 3,columnspan=1)
+		Checkbutton(self.root, text='filter class', variable=self.filter_class_tk, onvalue=True, offvalue=False,command = self.load_current_annotation).grid(row = 8, column = 3,columnspan=1)	
 	
 	def open_image_folder(self):
 		self.image_id = 0
-		file_path = filedialog.askdirectory(title=u'open_folder', initialdir=(os.path.expanduser('/home/robert/Models/model_inference_gui/example_images/Bird_drone/15m')))
+		file_path = filedialog.askdirectory(title=u'open_folder', initialdir=(os.path.expanduser('./15m')))
 		self.image_list = sorted(glob.glob(file_path+'/*.jpg')+glob.glob(file_path+'/*.JPG')+glob.glob(file_path+'/*.png'))
-		self.out_dir = os.path.join(self.out_dir,os.path.split(file_path)[1])
+		if ('out_dir' not in self.config):
+			self.out_dir = self.label_dir
+		else:
+			self.out_dir = os.path.join(self.out_dir,os.path.split(file_path)[1])
 		self.display_image()
 
 	def open_label_folder(self):
-		file_path = filedialog.askdirectory(title=u'open_folder', initialdir=(os.path.expanduser('/home/robert/Models/model_inference_gui/example_images/Bird_drone/15m')))
+		file_path = filedialog.askdirectory(title=u'open_folder', initialdir=(os.path.expanduser('./15m/label')))
 		self.label_dir = file_path
+		if ('out_dir' not in self.config):
+			self.out_dir = self.label_dir
 		self.use_prediction = False
 		self.load_current_annotation()
 		self.display_image()
 
 	def open_detection_folder(self):
-		file_path = filedialog.askdirectory(title=u'open_folder', initialdir=(os.path.expanduser('/home/robert/Models/model_inference_gui/example_images/Bird_drone/15m_results/classification-results')))
+		file_path = filedialog.askdirectory(title=u'open_folder', initialdir=(os.path.expanduser('./15m/detection')))
 		self.label_dir = file_path
+		if ('out_dir' not in self.config):
+			self.out_dir = self.label_dir
 		self.use_prediction = True
 		self.load_current_annotation()
 		self.display_image()
@@ -103,7 +119,10 @@ class ClassifyGUI():
 		self.smallPhoto = ImageTk.PhotoImage(self.SmallImage.resize((self.small_image_size[0],self.small_image_size[1]),resample=0))
 		Label(root, image=self.largePhoto,width=self.large_image_size[0],height =self.large_image_size[1]).grid(row=0, column=0,rowspan = 20,columnspan=2,sticky=W+E+N+S)
 		Label(root, image=self.smallPhoto,width=self.small_image_size[0],height =self.small_image_size[1]).grid(row=0, column=3,rowspan = 5,columnspan=1,sticky=W+E+N+S)
-		self.draw_annotation()
+		self.info = 'image_name:{}\nimage_id:{}/{}\nannotation_id:{}/{}'.format(os.path.basename(self.image_list[self.image_id]),
+								    self.image_id+1,len(self.image_list),self.bird_id+1,len(self.cur_bbox))
+		Label(self.root, text = self.info,anchor='w').grid(row = 8, column = 3,columnspan=1,sticky=W)
+		
 		#print (self.cur_bbox)
 
 	def draw_annotation(self):
@@ -145,12 +164,21 @@ class ClassifyGUI():
 		
 
 	def save_current_annotation(self,label = None, correct = True):# save the current annotations
-		self.cur_bbox[self.bird_id][0] = label
+		if (self.cur_bbox[self.bird_id][0] != label):
+			self.change_log.append([self.image_list[self.image_id],self.bird_id,self.cur_bbox[self.bird_id][0],label]+self.cur_bbox[self.bird_id][1:])
+			self.cur_bbox[self.bird_id][0] = label
 		if(not os.path.isdir(os.path.split(self.result_file)[0])):
 			os.makedirs(os.path.split(self.result_file)[0],exist_ok=True)
 		with open(self.result_file, "w") as f:
 			for box in self.cur_bbox:
 				f.writelines('{},{},{},{},{},{}\n'.format(box[0],box[5],box[1],box[2],box[3],box[4]))
+		df = pd.DataFrame(self.change_log)
+		if (self.use_prediction):
+			df.to_csv(os.path.join(self.out_dir,'change_log.csv'),header=['image_name','annotation_id','prev_class','new_class',
+								'x1','y1','x2','y2','confidence'],index=False)
+		else:
+			df.to_csv(os.path.join(self.out_dir,'change_log.csv'),header=['image_name','annotation_id','prev_class','new_class',
+								'x1','y1','x2','y2'],index=False)
 		self.switch_box('next')
 
 	def load_current_annotation(self):#Load the gt/detection file for current image
@@ -158,7 +186,7 @@ class ClassifyGUI():
 		bird_w_label = False
 		image_name = os.path.split(self.image_list[self.image_id])[1]
 		self.detection_file = os.path.join(self.label_dir,image_name.split('.')[0]+'.txt')
-		self.result_file = os.path.join(self.out_dir,'result_labels',image_name.split('.')[0]+'.txt')
+		self.result_file = os.path.join(self.out_dir,image_name.split('.')[0]+'.txt')
 
 
 		print ('checking file exists:',path.exists(self.result_file))
