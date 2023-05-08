@@ -81,7 +81,11 @@ class ClassifyGUI():
 		self.change_log = []
 		self.image_id = 0
 		file_path = filedialog.askdirectory(title=u'open_folder', initialdir=(os.path.expanduser('./15m')))
-		self.image_list = sorted(glob.glob(file_path+'/*.jpg')+glob.glob(file_path+'/*.JPG')+glob.glob(file_path+'/*.png'))
+		image_list = sorted(glob.glob(file_path+'/*'))
+		self.image_list = []
+		for image_dir in image_list:
+			if(image_dir.endswith((".jpg",'.JPG','.png'))):
+				self.image_list.append(image_dir)
 		self.display_image()
 
 	def open_label_folder(self):
